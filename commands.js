@@ -18,7 +18,6 @@ const DISCORD_COMMANDS = [
 
 export async function makeDiscordRequest(url, options) {
    
-  // Stringify payloads
   if (options.body) options.body = JSON.stringify(options.body);
 
   const response = await fetch(url, {
