@@ -8,8 +8,9 @@ import {
   verifyKeyMiddleware,
 } from "discord-interactions";
 import dotenv from "dotenv";
-dotenv.config();
+import { ensureValidToken, fetchActivity, sendDiscordDM } from "./utils.js";
 
+dotenv.config();
 const app = express();
 
 // ==================== LOCAL STORAGE FOR TESTING ====================
@@ -147,7 +148,50 @@ app.use(bodyParser.json());
 
 // Creates the endpoint for our webhook
 app.post("/webhook", (req, res) => {
+  // Stravea requires a 200 response within 2 seconds
   res.status(200).send("EVENT_RECEIVED");
+
+  Promise.resolve()
+    .then(async () => {
+      try {
+        const event = req.body;
+
+        /** Keeping update aspect type for testing atm */
+        if (
+          event.object_type === "activity" &&
+          (event.aspect_type === "create" || event.aspect_type === "update")
+        ) {
+          const athleteId = event.owner_id;
+          const activityId = event.object_id;
+
+          // Look up Discord user
+          const discordUserId = await kv.get(`athlete:${athleteId}`);
+
+          if (discordUserId) {
+            const userData = await kv.get(`user:${discordUserId}`);
+
+            if (userData) {
+              // Ensure token is valid
+              const validToken = await ensureValidToken(
+                discordUserId,
+                userData
+              );
+
+              // Fetch activity details
+              const activity = await fetchActivity(activityId, validToken);
+
+              // Send Discord DM
+              await sendDiscordDM(discordUserId, activity);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error processing webhook:", error);
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
 });
 
 // Adds support for GET requests to our webhook
