@@ -1,7 +1,12 @@
 import express from "express";
 import bodyParser from "body-parser";
 import crypto from "crypto";
-import { InteractionResponseFlags, InteractionResponseType, InteractionType, verifyKeyMiddleware } from "discord-interactions";
+import {
+  InteractionResponseFlags,
+  InteractionResponseType,
+  InteractionType,
+  verifyKeyMiddleware,
+} from "discord-interactions";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -22,7 +27,7 @@ const kv = {
   },
   async del(key) {
     storage.delete(key);
-  }
+  },
 };
 
 // ==================== DISCORD INTERACTIONS ====================
@@ -30,88 +35,111 @@ const kv = {
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  */
-app.post("/interactions", verifyKeyMiddleware(process.env.DISCORD_PUBLIC_KEY), async (req, res) => {
+app.post(
+  "/interactions",
+  verifyKeyMiddleware(process.env.DISCORD_PUBLIC_KEY),
+  async (req, res) => {
+    const { type, data, member, user } = req.body;
 
-  const { type, data, member, user } = req.body;
+    /**
+     * Handle verification requests
+     */
+    if (type === InteractionType.PING) {
+      return res.send({ type: InteractionResponseType.PONG });
+    }
 
-  /**
-   * Handle verification requests
-   */
-  if (type === InteractionType.PING) {
-    return res.send({ type: InteractionResponseType.PONG });
-  }
+    // Handle slash commands
+    if (type === InteractionType.APPLICATION_COMMAND) {
+      const discordUser = member?.user || user;
 
+      // /connect-strava
+      if (data.name === "connect-strava") {
+        const authUrl = `${process.env.WEB_APP_URL}/auth/start/${discordUser.id}`;
 
-  // Handle slash commands
-  if (type === InteractionType.APPLICATION_COMMAND) {
-    const discordUser = member?.user || user;
-    
-    // /connect-strava
-    if (data.name === "connect-strava") {
-      const authUrl = `${process.env.WEB_APP_URL}/auth/start/${discordUser.id}`;
-      
-      return res.json({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          content: `🔗 Click here to connect your Strava account:\n${authUrl}\n\nThis link expires in 15 minutes.`,
-          flags:InteractionResponseFlags.EPHEMERAL
+        return res.json({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `🔗 Click here to connect your Strava account:\n${authUrl}\n\nThis link expires in 15 minutes.`,
+            flags: InteractionResponseFlags.EPHEMERAL,
+          },
+        });
+      }
+
+      // /disconnect-strava
+      if (data.name === "disconnect-strava") {
+        const userData = await kv.get(`user:${discordUser.id}`);
+        console.log("User data to disconnect:", userData);
+
+        if (userData) {
+          try {
+            // Deauthorize from Strava FIRST
+            const deauthResponse = await fetch(
+              `https://www.strava.com/oauth/deauthorize?access_token=${userData.access_token}`,
+              { method: "POST" }
+            );
+
+            if (!deauthResponse.ok) {
+              console.error(
+                "Failed to deauthorize from Strava:",
+                await deauthResponse.text()
+              );
+              // Continue anyway to clean up local data
+            } else {
+              console.log("Successfully deauthorized from Strava");
+            }
+          } catch (error) {
+            console.error("Error deauthorizing from Strava:", error);
+            // Continue anyway to clean up local data
+          }
+          await kv.del(`athlete:${userData.athlete_id}`);
+          await kv.del(`user:${discordUser.id}`);
+
+          return res.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: "✅ Your Strava account has been disconnected.",
+              flags: InteractionResponseFlags.EPHEMERAL,
+            },
+          });
+        } else {
+          return res.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: "❌ You don't have a Strava account connected.",
+              flags: InteractionResponseFlags.EPHEMERAL,
+            },
+          });
         }
-      });
-    }
+      }
 
-    // /disconnect-strava
-    if (data.name === "disconnect-strava") {
-      const userData = await kv.get(`user:${discordUser.id}`);
-      
-      if (userData) {
-        await kv.del(`athlete:${userData.athlete_id}`);
-        await kv.del(`user:${discordUser.id}`);
-        
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: "✅ Your Strava account has been disconnected.",
-            flags: InteractionResponseFlags.EPHEMERAL
-          }
-        });
-      } else {
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: "❌ You don't have a Strava account connected.",
-            flags: InteractionResponseFlags.EPHEMERAL
-          }
-        });
+      // /strava-status
+      if (data.name === "strava-status") {
+        const userData = await kv.get(`user:${discordUser.id}`);
+
+        if (userData) {
+          return res.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: `✅ Connected as: **${userData.athlete_name}**`,
+              flags: InteractionResponseFlags.EPHEMERAL,
+            },
+          });
+        } else {
+          return res.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content:
+                "❌ No Strava account connected. Use `/connect-strava` to link your account.",
+              flags: InteractionResponseFlags.EPHEMERAL,
+            },
+          });
+        }
       }
     }
 
-    // /strava-status
-    if (data.name === "strava-status") {
-      const userData = await kv.get(`user:${discordUser.id}`);
-      
-      if (userData) {
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: `✅ Connected as: **${userData.athlete_name}**`,
-            flags: InteractionResponseFlags.EPHEMERAL
-          }
-        });
-      } else {
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: "❌ No Strava account connected. Use `/connect-strava` to link your account.",
-            flags: InteractionResponseFlags.EPHEMERAL
-          }
-        });
-      }
-    }
+    res.status(400).send("Unknown interaction type");
   }
-
-
-  res.status(400).send("Unknown interaction type");
-});
+);
 
 // ==================== STRAVA WEBHOOK ENDPOINTS ====================
 
@@ -195,12 +223,12 @@ app.get("/auth/callback", async (req, res) => {
     });
 
     const token = await tokenResponse.json();
-    
+
     if (token.errors) {
       console.error("Token exchange error:", token);
       return res.send("Failed to connect to Strava. Please try again.");
     }
-    
+
     await kv.set(`user:${discordUserId}`, {
       access_token: token.access_token,
       refresh_token: token.refresh_token,
@@ -268,7 +296,7 @@ if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 80;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-  });   
+  });
 }
 
 export default app;

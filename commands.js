@@ -17,7 +17,6 @@ const DISCORD_COMMANDS = [
 ];
 
 export async function makeDiscordRequest(url, options) {
-   
   if (options.body) options.body = JSON.stringify(options.body);
 
   const response = await fetch(url, {
@@ -51,7 +50,7 @@ export async function makeDiscordRequest(url, options) {
  * @param {*} commands List of commands to install
  */
 export async function installGlobalCommands(appId, commands) {
-   const url = `https://discord.com/api/v10/applications/${process.env.DISCORD_APPLICATION_ID}/commands`;
+  const url = `https://discord.com/api/v10/applications/${process.env.DISCORD_APPLICATION_ID}/commands`;
 
   try {
     await makeDiscordRequest(url, { method: "PUT", body: commands });
