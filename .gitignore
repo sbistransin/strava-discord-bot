@@ -1,4 +1,15 @@
+# Dependencies
 node_modules/
+
+# Build output
+dist/
+*.js
+*.d.ts
+*.js.map
+
+# Environment
 .env
-.vercel
+
+# OS files
 .DS_Store
+Thumbs.db

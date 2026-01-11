@@ -1,6 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
-import crypto from "crypto";
+import { randomBytes } from "crypto";
 import {
   InteractionResponseFlags,
   InteractionResponseType,
@@ -8,25 +8,43 @@ import {
   verifyKeyMiddleware,
 } from "discord-interactions";
 import dotenv from "dotenv";
-import { ensureValidToken, fetchActivity, sendDiscordDM } from "./utils.js";
+import {
+  ensureValidToken,
+  fetchActivity,
+  sendStravaActivityToDiscord,
+} from "./utils";
 
 dotenv.config();
 const app = express();
 
+if (!process.env.DISCORD_PUBLIC_KEY) {
+  console.error("Missing DISCORD_PUBLIC_KEY in environment variables");
+  process.exit(1);
+}
+
+if (!process.env.STRAVA_REDIRECT_URI) {
+  console.error("Missing STRAVA_REDIRECT_URI in environment variables");
+  process.exit(1);
+}
+
 // ==================== LOCAL STORAGE FOR TESTING ====================
 const storage = new Map();
 
-const kv = {
-  async get(key) {
+export const kv = {
+  async get(key: string) {
     return storage.get(key) || null;
   },
-  async set(key, value, options) {
+  async set(
+    key: string,
+    value: Record<string, string> | string,
+    options?: { ex?: number }
+  ) {
     storage.set(key, value);
     if (options?.ex) {
       setTimeout(() => storage.delete(key), options.ex * 1000);
     }
   },
-  async del(key) {
+  async del(key: string) {
     storage.delete(key);
   },
 };
@@ -181,7 +199,7 @@ app.post("/webhook", (req, res) => {
               const activity = await fetchActivity(activityId, validToken);
 
               // Send Discord DM
-              await sendDiscordDM(discordUserId, activity);
+              await sendStravaActivityToDiscord(discordUserId, activity);
             }
           }
         }
@@ -219,9 +237,15 @@ app.get("/webhook", (req, res) => {
 // ==================== STRAVA OAUTH ENDPOINTS ====================
 
 app.get("/auth/start/:discordUserId", async (req, res) => {
+  if (!process.env.STRAVA_REDIRECT_URI) {
+    console.error("Missing STRAVA_REDIRECT_URI in environment variables");
+    // what should i send here
+    process.exit(1);
+  }
+
   const discordUserId = req.params.discordUserId;
 
-  const state = crypto.randomBytes(16).toString("hex");
+  const state = randomBytes(16).toString("hex");
   await kv.set(`state:${state}`, discordUserId, { ex: 900 });
 
   const authUrl =

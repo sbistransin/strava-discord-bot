@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "Serverless Discord bot for Strava activities",
   "main": "index.js",
-  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "register-commands": "node commands.js"
+    "register-commands": "node commands.js",
+    "check-types": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch & node dist/index.js",
+    "watch": "tsc -p tsconfig.json --watch",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
@@ -16,6 +18,9 @@
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.6",
+    "nodemon": "^3.0.2",
+    "typescript": "^5.9.3"
   }
 }
