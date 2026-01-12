@@ -4,7 +4,7 @@
   "description": "Serverless Discord bot for Strava activities",
   "main": "index.js",
   "scripts": {
-    "register-commands": "node commands.js",
+    "register-commands": "node src/services/discord/install-global-commands.js",
     "check-types": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
     "dev": "tsc -p tsconfig.json --watch & node dist/index.js",
@@ -12,7 +12,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
     "discord-interactions": "^4.4.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"

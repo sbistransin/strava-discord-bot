@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { DiscordApiClient } from "./discord/client";
+import { DiscordApiClient } from "../src/clients/discord/client";
 dotenv.config();
 
 const DISCORD_COMMAND = [
