@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { storage } from "../..";
+import { StravaApiClient } from "../../clients/strava/client";
 
 type Params = {
   discordUserId: string;
@@ -20,14 +21,8 @@ export async function stravaConnect(req: Request<Params>, res: Response) {
     await storage.set(`state:${state}`, discordUserId, {
       ex: 900,
     });
-
-    const authUrl =
-      `https://www.strava.com/oauth/authorize?` +
-      `client_id=${process.env.STRAVA_CLIENT_ID}&` +
-      `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(process.env.STRAVA_REDIRECT_URI!)}&` +
-      `scope=activity:read_all,read&` +
-      `state=${state}`;
+    const stravaClient = new StravaApiClient();
+    const authUrl = await stravaClient.getAuthorizeUrl(state);
 
     res.redirect(authUrl);
   } catch (err) {

@@ -5,6 +5,7 @@ import {
   InteractionResponseType,
   InteractionType,
 } from "discord-interactions";
+import { StravaApiClient } from "../../clients/strava/client";
 
 export async function handleDiscordInteractions(req: Request, res: Response) {
   try {
@@ -37,29 +38,10 @@ export async function handleDiscordInteractions(req: Request, res: Response) {
       // /disconnect-strava
       if (data.name === "disconnect-strava") {
         const userData = await storage.get(`user:${discordUser.id}`);
-        console.log("User data to disconnect:", userData);
 
         if (userData) {
-          try {
-            // Deauthorize from Strava FIRST
-            const deauthResponse = await fetch(
-              `https://www.strava.com/oauth/deauthorize?access_token=${userData.access_token}`,
-              { method: "POST" }
-            );
-
-            if (!deauthResponse.ok) {
-              console.error(
-                "Failed to deauthorize from Strava:",
-                await deauthResponse.text()
-              );
-              // Continue anyway to clean up local data
-            } else {
-              console.log("Successfully deauthorized from Strava");
-            }
-          } catch (error) {
-            console.error("Error deauthorizing from Strava:", error);
-            // Continue anyway to clean up local data
-          }
+          const stravaClient = new StravaApiClient();
+          await stravaClient.deauthorize(userData.access_token);
           await storage.del(`athlete:${userData.athlete_id}`);
           await storage.del(`user:${discordUser.id}`);
 

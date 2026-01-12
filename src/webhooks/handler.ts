@@ -1,10 +1,9 @@
 import type { Request, Response } from "express";
 
-import { Router } from "express";
-import { ensureValidToken } from "../services/auth/refresh";
-import { fetchActivity } from "../services/strava/strava";
+import { refreshTokenIfNeeded } from "../services/auth/refresh";
 import { sendStravaActivityToDiscord } from "../services/discord/discord";
 import { storage } from "..";
+import { StravaApiClient } from "../clients/strava/client";
 
 type StravaWebhookEvent = {
   aspect_type: "create" | "update";
@@ -23,7 +22,8 @@ export const processStravaWebhookEvent = async (
   req: Request,
   res: Response
 ) => {
-  console.log("Received Strava webhook event:", req.body);
+  // todo add verification of the webhook signature
+  console.log("Received webhook event:", req.body);
   try {
     const event = req.body as StravaWebhookEvent;
     /** Keeping update aspect type for testing atm */
@@ -42,10 +42,18 @@ export const processStravaWebhookEvent = async (
 
         if (userData) {
           // Ensure token is valid
-          const validToken = await ensureValidToken(discordUserId, userData);
+          const stravaClient = new StravaApiClient();
+          const validToken = await refreshTokenIfNeeded(
+            discordUserId,
+            userData,
+            stravaClient
+          );
 
           // Fetch activity details
-          const activity = await fetchActivity(activityId, validToken);
+          const activity = await stravaClient.getActivity(
+            activityId,
+            validToken
+          );
 
           // Send Discord DM
           await sendStravaActivityToDiscord(discordUserId, activity);
@@ -57,7 +65,7 @@ export const processStravaWebhookEvent = async (
     // to use an event stream for webhook processing
     res.status(200).send("EVENT_RECEIVED");
   } catch (error) {
-    console.error("Strava Webhook error:", error);
+    console.error("Webhook error:", error);
     res.status(200).json({ success: true });
   }
 };

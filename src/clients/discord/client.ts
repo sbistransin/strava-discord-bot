@@ -1,3 +1,4 @@
+import { URLSearchParams } from "node:url";
 import { DiscordApiError } from "./error";
 import {
   DiscordRequestError,
@@ -10,14 +11,14 @@ import {
 
 export class DiscordApiClient {
   /* Base URL for Discord API. */
-  private baseUrl = process.env.DISCORD_API_BASE_URL;
+  private baseUrl = "https://discord.com";
 
   /* API version. */
   private version = "v10" as const;
 
   /**
    * Make a call to the Discord API.
-   * @param opts.uri Uri of the Discord API endpoint i.e. `/invoice`
+   * @param opts.uri Uri of the Discord API endpoint i.e. `/channels`
    * @param opts.method HTTP method
    * @param opts.body Request body
    * @param opts.headers Request headers

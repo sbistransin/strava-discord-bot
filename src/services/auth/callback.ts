@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { storage } from "../..";
+import { StravaApiClient } from "../../clients/strava/client";
 
 export const stravaCallback = async (req: Request, res: Response) => {
   const { code, state, error } = req.query;
@@ -20,41 +21,26 @@ export const stravaCallback = async (req: Request, res: Response) => {
     );
   }
 
-  try {
-    const tokenResponse = await fetch("https://www.strava.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: process.env.STRAVA_CLIENT_ID,
-        client_secret: process.env.STRAVA_CLIENT_SECRET,
-        code,
-        grant_type: "authorization_code",
-      }),
-    });
+  const stravaClient = new StravaApiClient();
+  // Todo make request params type safe
+  const token = await stravaClient.getToken(code as string);
 
-    const token = await tokenResponse.json();
+  await storage.set(`user:${discordUserId}`, {
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    expires_at: token.expires_at.toString(),
+    athlete_id: token.athlete.id,
+    athlete_name: `${token.athlete.firstname} ${token.athlete.lastname}`,
+  });
 
-    if (token.errors) {
-      console.error("Token exchange error:", token);
-      return res.send("Failed to connect to Strava. Please try again.");
-    }
+  await storage.set(`athlete:${token.athlete.id}`, discordUserId);
+  await storage.del(`state:${state}`);
 
-    await storage.set(`user:${discordUserId}`, {
-      access_token: token.access_token,
-      refresh_token: token.refresh_token,
-      expires_at: token.expires_at,
-      athlete_id: token.athlete.id,
-      athlete_name: `${token.athlete.firstname} ${token.athlete.lastname}`,
-    });
+  console.log(
+    `User ${discordUserId} connected Strava athlete ${token.athlete.id}`
+  );
 
-    await storage.set(`athlete:${token.athlete.id}`, discordUserId);
-    await storage.del(`state:${state}`);
-
-    console.log(
-      `User ${discordUserId} connected Strava athlete ${token.athlete.id}`
-    );
-
-    res.send(`
+  res.send(`
         <html>
           <head>
             <style>
@@ -90,8 +76,4 @@ export const stravaCallback = async (req: Request, res: Response) => {
           </body>
         </html>
       `);
-  } catch (error) {
-    console.error("OAuth callback error:", error);
-    res.send("An error occurred during authorization. Please try again.");
-  }
 };
