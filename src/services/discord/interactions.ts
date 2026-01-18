@@ -30,7 +30,10 @@ export async function handleDiscordInteractions(req: Request, res: Response) {
         return res.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: `🔗 Click here to connect your Strava account:\n${authUrl}\n\nThis link expires in 15 minutes.`,
+            content:
+              `🔗 Click here to connect your Strava account:\n${authUrl}\n\n` +
+              `By connecting, you agree to our [Privacy Policy](${process.env.WEB_APP_URL}/privacy.html).\n` +
+              `This link expires in 15 minutes.`,
             flags: InteractionResponseFlags.EPHEMERAL,
           },
         });
