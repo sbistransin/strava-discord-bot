@@ -1,10 +1,9 @@
-import { URLSearchParams } from "node:url";
 import { DiscordApiError } from "./error";
 import {
-  DiscordRequestError,
   DiscordApiResponse,
   DiscordCommand,
   DiscordMessage,
+  DiscordRequestError,
 } from "./types";
 
 // todo: better logging if tokens are not present

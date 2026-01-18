@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 
-import { refreshTokenIfNeeded } from "../services/auth/refresh";
-import { sendStravaActivityToDiscord } from "../services/discord/discord";
 import { storage } from "..";
 import { StravaApiClient } from "../clients/strava/client";
+import { refreshTokenIfNeeded } from "../services/auth/refresh";
+import { sendStravaActivityToDiscord } from "../services/discord/discord";
 
 type StravaWebhookEvent = {
   aspect_type: "create" | "update";

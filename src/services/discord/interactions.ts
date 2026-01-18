@@ -1,10 +1,10 @@
-import type { Request, Response } from "express";
-import { storage } from "../..";
 import {
   InteractionResponseFlags,
   InteractionResponseType,
   InteractionType,
 } from "discord-interactions";
+import type { Request, Response } from "express";
+import { storage } from "../..";
 import { StravaApiClient } from "../../clients/strava/client";
 
 export async function handleDiscordInteractions(req: Request, res: Response) {

@@ -1,5 +1,5 @@
-import type { Request, Response } from "express";
 import { randomBytes } from "crypto";
+import type { Request, Response } from "express";
 import { storage } from "../..";
 import { StravaApiClient } from "../../clients/strava/client";
 

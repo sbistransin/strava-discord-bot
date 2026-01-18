@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { stravaConnect } from "./connect";
 import { stravaCallback } from "./callback";
+import { stravaConnect } from "./connect";
 
 const router = Router();
 

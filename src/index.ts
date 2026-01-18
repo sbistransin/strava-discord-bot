@@ -1,9 +1,9 @@
-import express from "express";
+import { verifyKeyMiddleware } from "discord-interactions";
 import dotenv from "dotenv";
-import webhookRoutes from "./webhooks/routes";
+import express from "express";
 import authRoutes from "./services/auth/routes";
 import { handleDiscordInteractions } from "./services/discord/interactions";
-import { verifyKeyMiddleware } from "discord-interactions";
+import webhookRoutes from "./webhooks/routes";
 
 dotenv.config();
 const app = express();
