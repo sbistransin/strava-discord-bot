@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import type { Request, Response } from "express";
-import { storage } from "../..";
 import { StravaApiClient } from "../../clients/strava/client";
+import { kv } from "@vercel/kv";
 
 type Params = {
   discordUserId: string;
@@ -18,7 +18,7 @@ export async function stravaConnect(req: Request<Params>, res: Response) {
     const discordUserId = req.params.discordUserId;
 
     const state = randomBytes(16).toString("hex");
-    await storage.set(`state:${state}`, discordUserId, {
+    await kv.set(`state:${state}`, discordUserId, {
       ex: 900,
     });
     const stravaClient = new StravaApiClient();

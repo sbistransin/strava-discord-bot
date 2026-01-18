@@ -1,4 +1,4 @@
-import { storage } from "../..";
+import { kv } from "@vercel/kv";
 import { StravaApiClient } from "../../clients/strava/client";
 import { VercelUserData } from "../../storage/types";
 
@@ -25,7 +25,7 @@ export async function refreshTokenIfNeeded(
       expires_at: newTokens.expires_at.toString(),
     };
 
-    await storage.set(`user:${discordUserId}`, updatedData);
+    await kv.set(`user:${discordUserId}`, updatedData);
 
     return newTokens.access_token;
   }

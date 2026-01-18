@@ -1,11 +1,12 @@
+import { kv } from "@vercel/kv";
 import {
   InteractionResponseFlags,
   InteractionResponseType,
   InteractionType,
 } from "discord-interactions";
 import type { Request, Response } from "express";
-import { storage } from "../..";
 import { StravaApiClient } from "../../clients/strava/client";
+import { VercelUserData } from "../../storage/types";
 
 export async function handleDiscordInteractions(req: Request, res: Response) {
   try {
@@ -37,13 +38,13 @@ export async function handleDiscordInteractions(req: Request, res: Response) {
 
       // /disconnect-strava
       if (data.name === "disconnect-strava") {
-        const userData = await storage.get(`user:${discordUser.id}`);
+        const userData = await kv.get<VercelUserData>(`user:${discordUser.id}`);
 
         if (userData) {
           const stravaClient = new StravaApiClient();
           await stravaClient.deauthorize(userData.access_token);
-          await storage.del(`athlete:${userData.athlete_id}`);
-          await storage.del(`user:${discordUser.id}`);
+          await kv.del(`athlete:${userData.athlete_id}`);
+          await kv.del(`user:${discordUser.id}`);
 
           return res.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -65,7 +66,7 @@ export async function handleDiscordInteractions(req: Request, res: Response) {
 
       // /strava-status
       if (data.name === "strava-status") {
-        const userData = await storage.get(`user:${discordUser.id}`);
+        const userData = await kv.get<VercelUserData>(`user:${discordUser.id}`);
 
         if (userData) {
           return res.json({

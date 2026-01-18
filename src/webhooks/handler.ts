@@ -1,9 +1,10 @@
 import type { Request, Response } from "express";
 
-import { storage } from "..";
+import { kv } from "@vercel/kv";
 import { StravaApiClient } from "../clients/strava/client";
 import { refreshTokenIfNeeded } from "../services/auth/refresh";
 import { sendStravaActivityToDiscord } from "../services/discord/discord";
+import { VercelUserData } from "../storage/types";
 
 type StravaWebhookEvent = {
   aspect_type: "create" | "update";
@@ -20,7 +21,7 @@ type StravaWebhookEvent = {
  */
 export const processStravaWebhookEvent = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   // todo add verification of the webhook signature
   console.log("Received webhook event:", req.body);
@@ -35,10 +36,10 @@ export const processStravaWebhookEvent = async (
       const activityId = event.object_id;
 
       // Look up Discord user
-      const discordUserId = await storage.get(`athlete:${athleteId}`);
+      const discordUserId = await kv.get<string>(`athlete:${athleteId}`);
 
       if (discordUserId) {
-        const userData = await storage.get(`user:${discordUserId}`);
+        const userData = await kv.get<VercelUserData>(`user:${discordUserId}`);
 
         if (userData) {
           // Ensure token is valid
@@ -46,13 +47,13 @@ export const processStravaWebhookEvent = async (
           const validToken = await refreshTokenIfNeeded(
             discordUserId,
             userData,
-            stravaClient
+            stravaClient,
           );
 
           // Fetch activity details
           const activity = await stravaClient.getActivity(
             activityId,
-            validToken
+            validToken,
           );
 
           // Send Discord DM

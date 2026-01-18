@@ -1,5 +1,5 @@
+import { kv } from "@vercel/kv";
 import type { Request, Response } from "express";
-import { storage } from "../..";
 import { StravaApiClient } from "../../clients/strava/client";
 
 export const stravaCallback = async (req: Request, res: Response) => {
@@ -13,11 +13,11 @@ export const stravaCallback = async (req: Request, res: Response) => {
     return res.send("Missing authorization code or state");
   }
 
-  const discordUserId = await storage.get(`state:${state}`);
+  const discordUserId = await kv.get(`state:${state}`);
 
   if (!discordUserId) {
     return res.send(
-      "Authorization expired or invalid. Please try again from Discord."
+      "Authorization expired or invalid. Please try again from Discord.",
     );
   }
 
@@ -25,7 +25,7 @@ export const stravaCallback = async (req: Request, res: Response) => {
   // Todo make request params type safe
   const token = await stravaClient.getToken(code as string);
 
-  await storage.set(`user:${discordUserId}`, {
+  await kv.set(`user:${discordUserId}`, {
     access_token: token.access_token,
     refresh_token: token.refresh_token,
     expires_at: token.expires_at.toString(),
@@ -33,11 +33,11 @@ export const stravaCallback = async (req: Request, res: Response) => {
     athlete_name: `${token.athlete.firstname} ${token.athlete.lastname}`,
   });
 
-  await storage.set(`athlete:${token.athlete.id}`, discordUserId);
-  await storage.del(`state:${state}`);
+  await kv.set(`athlete:${token.athlete.id}`, discordUserId);
+  await kv.del(`state:${state}`);
 
   console.log(
-    `User ${discordUserId} connected Strava athlete ${token.athlete.id}`
+    `User ${discordUserId} connected Strava athlete ${token.athlete.id}`,
   );
 
   res.send(`

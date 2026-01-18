@@ -18,32 +18,10 @@ if (!process.env.STRAVA_REDIRECT_URI) {
   process.exit(1);
 }
 
-// ==================== LOCAL STORAGE FOR TESTING ====================
-const storageMap = new Map();
-
-export const storage = {
-  async get(key: string) {
-    return storageMap.get(key) || null;
-  },
-  async set(
-    key: string,
-    value: Record<string, string> | string,
-    options?: { ex?: number }
-  ) {
-    storageMap.set(key, value);
-    if (options?.ex) {
-      setTimeout(() => storageMap.delete(key), options.ex * 1000);
-    }
-  },
-  async del(key: string) {
-    storageMap.delete(key);
-  },
-};
-
 app.post(
   "/interactions",
   verifyKeyMiddleware(process.env.DISCORD_PUBLIC_KEY),
-  handleDiscordInteractions
+  handleDiscordInteractions,
 );
 app.use("/auth", authRoutes);
 
