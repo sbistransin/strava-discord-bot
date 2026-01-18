@@ -79,7 +79,7 @@ export const processStravaWebhookEvent = async (
 export const verifyStravaWebhook = async (req: Request, res: Response) => {
   try {
     // Your verify token. Should be a random string.
-    const VERIFY_TOKEN = "STRAVA";
+    const VERIFY_TOKEN = process.env.STRAVA_VERIFY_TOKEN;
     // Parses the query params
     let mode = req.query["hub.mode"];
     let token = req.query["hub.verify_token"];
