@@ -32,7 +32,7 @@ export async function handleDiscordInteractions(req: Request, res: Response) {
           data: {
             content:
               `🔗 Click here to connect your Strava account:\n${authUrl}\n\n` +
-              `By connecting, you agree to our [Privacy Policy](${process.env.WEB_APP_URL}/privacy.html).\n` +
+              `By connecting, you agree to our [Privacy Policy](${process.env.WEB_APP_URL}/privacy).\n` +
               `This link expires in 15 minutes.`,
             flags: InteractionResponseFlags.EPHEMERAL,
           },
